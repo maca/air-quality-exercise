@@ -7,7 +7,7 @@ defmodule AirQuality.Store do
 
 
   def init do
-    Application.fetch_env!(:mnesia, :dir) |> File.mkdir_p
+    Application.fetch_env!(:mnesia, :dir) |> File.mkdir_p!
 
     Mnesia.create_schema(nodes())
     Mnesia.start()

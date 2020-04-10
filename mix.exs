@@ -23,7 +23,9 @@ defmodule AirQuality.MixProject do
     [
       {:httpoison, "~> 1.6"},
       {:poison, "~> 4.0"},
-      {:timex, "~> 3.6"}
+      {:timex, "~> 3.6"},
+      {:cowboy, "~> 2.7", only: [:test]},
+      {:plug_cowboy, "~> 2.0", only: [:test]}
     ]
   end
 end

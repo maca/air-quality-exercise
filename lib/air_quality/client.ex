@@ -1,5 +1,6 @@
 defmodule AirQuality.Client do
-  alias AirQuality.Intensity
+  alias AirQuality.Store
+  import Store, only: [intensity: 1]
 
   @endpoint "https://api.carbonintensity.org.uk"
 
@@ -22,7 +23,9 @@ defmodule AirQuality.Client do
        }
     } = result
 
-    timestamp = Timex.parse!(timestamp_raw, "{ISO:Extended:Z}")
-    %Intensity{timestamp: timestamp, actual: actual, forecast: forecast}
+    timestamp =
+      Timex.parse!(timestamp_raw, "{ISO:Extended:Z}") |> Timex.to_unix
+
+    intensity(timestamp: timestamp, actual: actual, forecast: forecast)
   end
 end

@@ -1,75 +1,55 @@
-defmodule AirQuality.Intensity do
+defmodule AirQuality.Store do
   alias :mnesia, as: Mnesia
+  require Record
 
-  defstruct timestamp: nil, actual: nil, forecast: nil
-  @minute_interval 30
+  @record :intensity
+  Record.defrecord @record, timestamp: nil, actual: nil, forecast: nil
 
 
-  def init_store do
+  def init do
+    Application.fetch_env!(:mnesia, :dir) |> File.mkdir_p
+
     Mnesia.create_schema(nodes())
     Mnesia.start()
 
-    Mnesia.create_table(__MODULE__, attributes: attributes(),
-      type: :ordered_set, index: [:timestamp], disc_copies: nodes())
+    Mnesia.create_table(@record, attributes: attributes(),
+      type: :ordered_set, disc_copies: nodes())
+
+    Mnesia.wait_for_tables([@record], 5)
   end
 
-
-  def store(intensities) when is_list(intensities) do
-    Mnesia.transaction(fn -> Enum.map(intensities, &write/1) end)
+  def stop do
+    Mnesia.stop()
   end
 
-  def store(intensity) do
-    Mnesia.transaction(fn -> write(intensity) end)
+  def write(intensities) when is_list(intensities) do
+    run(fn -> Enum.each(intensities, &Mnesia.write/1) end)
   end
 
-
-  def read(timestamp) when is_number(timestamp) do
-    Mnesia.transaction(fn -> Mnesia.read({__MODULE__, timestamp}) end)
+  def write(intensity) do
+    run(fn -> Mnesia.write(intensity) end)
   end
 
   def read(timestamp) do
-    read unix_time(timestamp)
+    run(fn -> Mnesia.read({@record, timestamp}) end)
   end
 
-
-  def read_interval([from: from, to: to]) do
-    guard = [ {:>=, :"$1", unix_time(from)},
-              {:'=<', :"$1", unix_time(to)} ]
-
-    select({:_, :"$1", :"$2", :"$3"}, guard)
+  def read(from, to) do
+    guard = [ {:>=, :"$1", from}, {:'=<', :"$1", to} ]
+    select({@record, :"$1", :"$2", :"$3"}, guard)
   end
 
   def last do
-    Mnesia.transaction(fn ->
-      Mnesia.read({__MODULE__, Mnesia.last(__MODULE__)})
-    end)
+    run(fn -> Mnesia.read({@record, Mnesia.last(@record)}) end)
   end
 
-
-  defp select(head, guard, result \\ [:"$$"]) do
-    params = [{head, guard, result}]
-
-    Mnesia.transaction(fn ->
-      Mnesia.select(__MODULE__, params) |> Enum.map(&map_record/1)
-    end)
+  defp select(head, guard, result \\ [{{@record,:"$1",:"$2",:"$3"}}]) do
+    run(fn -> Mnesia.select(@record, [{head, guard, result}]) end)
   end
 
-  defp map_record([ts, ac, fc]) do
-    timestamp = Timex.from_unix(ts)
-    %__MODULE__{timestamp: timestamp, actual: ac, forecast: fc}
-  end
-
-  defp snap_time(time = %{minute: minute}) do
-    minute = floor(minute / @minute_interval) * @minute_interval
-    Timex.set(time, minute: minute, second: 0, microsecond: {0, 0})
-  end
-
-  defp write(%{timestamp: ts, actual: actual, forecast: forecast}) do
-    Mnesia.write({__MODULE__, unix_time(ts), actual, forecast})
-  end
-
-  defp unix_time(timestamp) do
-    snap_time(timestamp) |> Timex.to_unix
+  defp run(fun) do
+    {:atomic, result} = Mnesia.transaction(fun)
+    result
   end
 
   defp nodes do
@@ -77,7 +57,6 @@ defmodule AirQuality.Intensity do
   end
 
   defp attributes do
-    [_ | attrs] = Map.keys(AirQuality.Intensity.__struct__)
-    attrs
+    [:timestamp, :actual, :forecast]
   end
 end

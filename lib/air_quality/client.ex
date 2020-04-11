@@ -1,7 +1,14 @@
 defmodule AirQuality.Client do
   alias AirQuality.Store
-  import Store, only: [intensity: 1]
+  require Store
 
+  def intensity(date) when is_binary(date) do
+    get("intensity/date/#{date}")
+  end
+
+  def intensity(date) do
+    intensity Timex.format!(date, "{YYYY}-{0M}-{0D}")
+  end
 
   def intensity do
     get("intensity")
@@ -14,7 +21,7 @@ defmodule AirQuality.Client do
     Enum.map(data, &map_intensity/1)
   end
 
-  def map_intensity(result) do
+  defp map_intensity(result) do
     %{ "from" => time,
        "intensity" => %{
          "actual" => actual, "forecast" => forecast
@@ -23,7 +30,8 @@ defmodule AirQuality.Client do
 
     timestamp = Timex.parse!(time, "{ISO:Extended:Z}") |> Timex.to_unix
 
-    intensity(timestamp: timestamp, actual: actual, forecast: forecast)
+    Store.intensity(timestamp: timestamp, actual: actual,
+      forecast: forecast)
   end
 
   defp endpoint do

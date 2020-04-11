@@ -43,7 +43,11 @@ defmodule AirQuality.Store do
     run(fn -> Mnesia.read({@record, Mnesia.last(@record)}) end)
   end
 
-  defp select(head, guard, result \\ [{{@record,:"$1",:"$2",:"$3"}}]) do
+  defp select(head, guard) do
+    select(head, guard, [{head}])
+  end
+
+  defp select(head, guard, result) do
     run(fn -> Mnesia.select(@record, [{head, guard, result}]) end)
   end
 

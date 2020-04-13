@@ -21,7 +21,7 @@ records from an Mnesia database table. It also retrieves a `Stream` of
 numeric timestamps for missing records.
 
 
-## AirQuality.Poller**
+## AirQuality.Poller
 is a `GenServer`, when spawned it fetches and store all missing
 records since january 2018, later it will fetch and store the current
 or missing measurements every half an hour. 

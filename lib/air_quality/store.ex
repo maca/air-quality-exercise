@@ -1,6 +1,8 @@
 defmodule AirQuality.Store do
   alias :mnesia, as: Mnesia
 
+  import AirQuality.Utils
+
   require Record
   require Logger
 
@@ -72,11 +74,6 @@ defmodule AirQuality.Store do
       ts = n + half_hour
       if ts <= now, do: {n, ts}, else: nil
     end)
-  end
-
-  def day_start(timestamp) do
-    day = 60 * 60 * 24
-    div(timestamp, day) * day
   end
 
   defp select(head, guard), do: select(head, guard, [{head}])

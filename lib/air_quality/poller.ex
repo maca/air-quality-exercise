@@ -1,6 +1,7 @@
 defmodule AirQuality.Poller do
   use GenServer
 
+  import AirQuality.Utils
   alias AirQuality.Store
   alias AirQuality.Client
 
@@ -29,7 +30,7 @@ defmodule AirQuality.Poller do
 
   defp millisecs_until_tick do
     now = :erlang.system_time(:millisecond)
-    div(now + @interval, @interval) * @interval - now
+    next_interval_start(now, @interval) - now
   end
 
   defp fetch_and_store_missing_since(since) do

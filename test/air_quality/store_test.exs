@@ -4,6 +4,7 @@ defmodule AirQuality.StoreTest do
   alias AirQuality.Store
   alias :mnesia, as: Mnesia
 
+  import AirQuality.Utils
   import Store, only: [intensity: 1]
 
   doctest Store
@@ -60,7 +61,7 @@ defmodule AirQuality.StoreTest do
       ts = Enum.random(time_slots)
       {:atomic, :ok} = delete(ts)
 
-      dates = [ Store.day_start(ts) | dates ] |> Enum.uniq |> Enum.sort
+      dates = [ day_start(ts) | dates ] |> Enum.uniq |> Enum.sort
       missing = Store.dates_for_missing_since(from) |> Enum.to_list
       assert missing == dates
       dates

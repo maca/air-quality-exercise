@@ -6,7 +6,7 @@ defmodule AirQuality.ClientTest do
 
   test "get intensity" do
     expected = [intensity(timestamp: 0, actual: 1, forecast: 2)]
-    assert Client.intensity == expected
+    assert Client.last == expected
   end
 
   test "get intensities at date" do
@@ -17,7 +17,7 @@ defmodule AirQuality.ClientTest do
       intensity(timestamp: timestamp2, actual: 2, forecast: 3)
     ]
 
-    assert Client.intensity(~D[1970-01-02]) == expected
+    assert Client.records(~D[1970-01-02]) == expected
   end
 
   test "get intensities at date as string" do
@@ -28,6 +28,6 @@ defmodule AirQuality.ClientTest do
       intensity(timestamp: timestamp2, actual: 2, forecast: 3)
     ]
 
-    assert Client.intensity("1970-01-02") == expected
+    assert Client.records("1970-01-02") == expected
   end
 end

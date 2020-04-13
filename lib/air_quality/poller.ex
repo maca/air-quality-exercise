@@ -39,6 +39,6 @@ defmodule AirQuality.Poller do
   end
 
   defp fetch_and_store(timestamp) do
-    Timex.from_unix(timestamp) |> Client.intensity |> Store.write
+    Timex.from_unix(timestamp) |> Client.records |> Store.write
   end
 end

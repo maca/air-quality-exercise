@@ -1,8 +1,8 @@
 defmodule AirQuality.Poller do
   use GenServer
 
-  alias AirQuality.Intensity
   alias AirQuality.Store
+  alias AirQuality.Client
 
   @interval 1_000 * 60 * 30
 
@@ -16,10 +16,10 @@ defmodule AirQuality.Poller do
   end
 
   def handle_info(:tick, timestamp) do
-    Intensity.fetch_and_store_missing_since(timestamp)
+    fetch_and_store_missing_since(timestamp)
     [{:intensity, timestamp, _, _}] = Store.last()
 
-    schedule_tick_after(millisecs_to_next_slot())
+    schedule_tick_after(millisecs_until_tick())
     {:noreply, timestamp}
   end
 
@@ -27,8 +27,18 @@ defmodule AirQuality.Poller do
     Process.send_after(self(), :tick, interval)
   end
 
-  defp millisecs_to_next_slot do
+  defp millisecs_until_tick do
     now = :erlang.system_time(:millisecond)
     div(now + @interval, @interval) * @interval - now
+  end
+
+  defp fetch_and_store_missing_since(since) do
+    Store.dates_for_missing_since(since)
+      |> Task.async_stream(&fetch_and_store/1)
+      |> Stream.run
+  end
+
+  defp fetch_and_store(timestamp) do
+    Timex.from_unix(timestamp) |> Client.intensity |> Store.write
   end
 end

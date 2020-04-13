@@ -48,6 +48,25 @@ defmodule AirQuality.StoreTest do
     assert Store.read(5, 10) == [ ]
   end
 
+  test "obtain date timestamps for missing records" do
+    from = Timex.shift(Timex.today, days: -3) |> Timex.to_unix
+    to = :erlang.system_time(:seconds)
+    time_slots = :lists.seq(from, to, half_hour_interval())
+
+    :ok = record_fixtures(time_slots) |> Store.write
+    assert Store.dates_for_missing_since(from) |> Enum.to_list == []
+
+    Enum.reduce((1..15), [], fn _, dates ->
+      ts = Enum.random(time_slots)
+      {:atomic, :ok} = delete(ts)
+
+      dates = [ Store.day_start(ts) | dates ] |> Enum.uniq |> Enum.sort
+      missing = Store.dates_for_missing_since(from) |> Enum.to_list
+      assert missing == dates
+      dates
+    end)
+  end
+
   defp one do
     intensity(timestamp: 1, actual: 10, forecast: 11)
   end
@@ -63,6 +82,18 @@ defmodule AirQuality.StoreTest do
   defp four do
     intensity(timestamp: 4, actual: 13, forecast: 14)
   end
+
+  defp record_fixtures(timestamps) do
+    Enum.map(timestamps, fn ts ->
+      intensity(timestamp: ts, actual: 10, forecast: 10)
+    end)
+  end
+
+  defp delete(ts) do
+    Mnesia.transaction(fn -> Mnesia.delete({:intensity, ts}) end)
+  end
+
+  defp half_hour_interval, do: 60 * 30
 
   defp all_records do
     {:atomic, result} = Mnesia.transaction fn ->
